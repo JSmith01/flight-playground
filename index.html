@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+        #box {
+            min-width: 300px;
+            min-height: 300px;
+            --ball-x: 50px;
+            --ball-y: 100px;
+            --player-pos: 50px;
+            --score: '0 / 0';
+            position: absolute;
+            top: 5px;
+            bottom: 5px;
+            left: 5px;
+            right: 5px;
+            box-sizing: border-box;
+            border: 1px solid black;
+        }
+        #ball {
+            position: absolute;
+            left: var(--ball-x);
+            top: var(--ball-y);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: dodgerblue;
+            transition: left, top;
+            transition-duration: 50ms;
+        }
+        #player {
+            width: 200px;
+            height: 25px;
+            position: absolute;
+            left: var(--player-pos);
+            bottom: 25px;
+            background: green;
+            transition: left;
+            transition-duration: 200ms;
+        }
+        #score::after {
+            display: block;
+            width: 80px;
+            text-align: center;
+            position: absolute;
+            top: 0;
+            right: 0;
+            content: var(--score);
+            font-size: 24px;
+            color: white;
+            background: black;
+            opacity: 0.3;
+        }
+    </style>
+</head>
+<body>
+<div id="box">
+    <div id="ball"></div>
+    <div id="player"></div>
+    <div id="score"></div>
+</div>
+<script>
+    const box = document.getElementById('box');
+    const PLAYER_SIZE = 200;
+    const PLAYER_OFFSET = 50;
+    const PLAYER_SPEED = 20;
+    const BALL_SIZE = 50;
+    const BALL_SPEED = 10;
+    let pos = 50;
+    let dx = 1, dy = 1;
+    let bx = 50, by = 100;
+    let { width, height } = box.getBoundingClientRect();
+    let score = 0, maxScore = 0;
+
+    function getMaxPos() {
+        return width - 2 - PLAYER_SIZE;
+    }
+
+    function setPlayerPos(newPos) {
+        pos = newPos;
+        box.style.setProperty('--player-pos', pos + 'px');
+    }
+
+    document.body.onkeydown = function(ev) {
+        if (ev.code === 'ArrowLeft') {
+            setPlayerPos(Math.max(pos - PLAYER_SPEED, 0));
+        }
+        if (ev.code === 'ArrowRight') {
+            setPlayerPos(Math.min(pos + PLAYER_SPEED, getMaxPos()));
+        }
+        if (ev.code === 'KeyT') moveBall();
+    }
+
+    window.onresize = () => {
+        const b = box.getBoundingClientRect();
+        width = b.width;
+        height = b.height;
+        const newPos = Math.min(pos, getMaxPos());
+        if (pos !== newPos) {
+            setPlayerPos(newPos);
+        }
+        syncBall();
+    }
+
+    function syncBall() {
+        let bounce = false, fail = false;
+        // box horizontal boundary
+        const maxX = width - 2 - BALL_SIZE;
+        if (bx > maxX || bx < 0) {
+            dx *= -1;
+            bounce = true;
+            if (bx < 0) {
+                bx = 0;
+            } else if (bx > maxX) {
+                bx = maxX;
+            }
+        }
+        // box vertical boundary
+        const maxY = height - 2 - BALL_SIZE;
+        if (by > maxY || by < 0) {
+            dy *= -1;
+            bounce = true;
+            if (by < 0) {
+                by = 0;
+            } else if (by > maxY) {
+                fail = true;
+                by = maxY;
+            }
+        }
+
+        if (by >= maxY - PLAYER_OFFSET && by <= maxY - PLAYER_OFFSET + BALL_SPEED + 1 && dy > 0) {
+            if (pos <= bx && bx <= pos + PLAYER_SIZE) {
+                // player hit
+                bounce = true;
+                dy *= -1;
+            }
+        }
+
+        box.style.setProperty('--ball-x', bx + 'px');
+        box.style.setProperty('--ball-y', by + 'px');
+        let newScore = score;
+        if (fail) {
+            console.log('😭😭😭😭😭😭😭');
+            maxScore = Math.max(maxScore, newScore);
+            newScore = 0;
+        } else if (bounce) {
+            newScore++;
+        }
+        if (score !== newScore) {
+            score = newScore;
+            box.style.setProperty('--score', `"${score} / ${maxScore}"`);
+        }
+    }
+
+    function moveBall() {
+        bx += dx * BALL_SPEED;
+        by += dy * BALL_SPEED;
+        syncBall();
+    }
+
+    const ballTimer = setInterval(moveBall, 32);
+</script>
+</body>
+</html>
